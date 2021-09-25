@@ -6,6 +6,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.shareIn
 
+/**
+ * FlowEventBus where consumer can decide between single replay or no replay when collecting.
+ * Warning: It has some concurrency issues that is apparent when you run the tests
+ */
 class FlowEventBus<T> {
     private val threadPoolScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 

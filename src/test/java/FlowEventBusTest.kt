@@ -18,8 +18,8 @@ class FlowEventBusTest {
         val event1 = "A"
         val event2 = "B"
         runBlocking {
-            log("Success? " + bus.emit(event1))
-            log("Success? " + bus.emit(event2))
+            bus.emit(event1)
+            bus.emit(event2)
             assertThat(bus.latest, `is`(event2))
             bus.collectWithReplay {
                 assertThat(it, `is`(event2))
@@ -30,8 +30,10 @@ class FlowEventBusTest {
 
     @Test
     fun flowWithoutReplay_shouldOnlyGetItemsEmittedAfterCollectCalled_loop100() {
+        val time = System.currentTimeMillis()
         for (i in 1..100) {
             flowWithoutReplay_shouldOnlyGetItemsEmittedAfterCollectCalled()
+            log("  -- " + (System.currentTimeMillis() - time))
         }
     }
 
@@ -52,7 +54,7 @@ class FlowEventBusTest {
             }
         }
         waitUntil { bus.subscriptionCount > 0 }
-        ioScope.launch {
+        runBlocking {
             log( "Emitting $event2 to ${bus.subscriptionCount} subscribers")
             bus.emit(event2)
         }
