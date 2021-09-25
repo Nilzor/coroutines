@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.shareIn
  * Warning: It has some concurrency issues that is apparent when you run the tests
  */
 class FlowEventBus<T> {
-    private val threadPoolScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val threadPoolScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     private val eventsWithSingleReplay = MutableSharedFlow<T>(replay = 1) // private mutable shared flow
     private val eventsWithoutReplay = eventsWithSingleReplay.shareIn(threadPoolScope, SharingStarted.Eagerly, replay = 0)
