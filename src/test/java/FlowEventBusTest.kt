@@ -8,6 +8,7 @@ import org.hamcrest.CoreMatchers.`is`
 import org.hamcrest.CoreMatchers.equalTo
 import org.junit.Assert.assertThat
 import org.junit.Test
+import java.lang.RuntimeException
 
 
 class FlowEventBusTest {
@@ -77,6 +78,27 @@ class FlowEventBusTest {
         }
         Thread.sleep(200)
         assertThat(collectedItems.size, equalTo(0))
+    }
+
+    @Test
+    fun exceptionInCollectCoroutine() {
+        val bus = getInstance()
+        val collectedItems1 = mutableListOf<String>()
+        val collectedItems2 = mutableListOf<String>()
+        ioScope.launch { bus.collect {
+            collectedItems1.add(it)
+            throw RuntimeException("Sorry!")
+        } }
+        ioScope.launch { bus.collect { collectedItems2.add(it) } }
+        Thread.sleep(50)
+        runBlocking {
+            bus.emit("A")
+            bus.emit("B")
+        }
+
+        Thread.sleep(50)
+        assertThat(collectedItems1.size, equalTo(1))
+        assertThat(collectedItems2.size, equalTo(2))
     }
 
     @Test
