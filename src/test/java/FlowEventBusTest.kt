@@ -1,9 +1,6 @@
 import junit.framework.TestCase
+import kotlinx.coroutines.*
 
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers.`is`
 import org.hamcrest.CoreMatchers.equalTo
 import org.junit.Assert.assertThat
@@ -13,7 +10,7 @@ import java.lang.RuntimeException
 
 class FlowEventBusTest {
 
-    @Test(expected = CancellationException::class)
+    @Test
     fun flowWithReplay_replaysLastEvent() {
         val bus = getInstance()
         val event1 = "A"
@@ -22,11 +19,17 @@ class FlowEventBusTest {
             bus.emit(event1)
             bus.emit(event2)
             assertThat(bus.latest, `is`(event2))
-            bus.collectWithReplay {
-                assertThat(it, `is`(event2))
-                cancel() // ..or the coroutine will continue forever waiting for more to collect
-            }
         }
+
+        Thread.sleep(50)
+        var recievedEvent: String? = null
+        bus.collectWithReplayOn(CoroutineScope(Dispatchers.Unconfined)) {
+            recievedEvent = it
+            // cancel() // ..or the coroutine will continue forever waiting for more to collect
+        }
+
+        Thread.sleep(50)
+        assertThat(recievedEvent, `is`(event2))
     }
 
     @Test
@@ -48,11 +51,9 @@ class FlowEventBusTest {
             bus.emit(event1)
         }
         val collectedItems = mutableListOf<String>()
-        ioScope.launch {
-            log("Collecting... (sub count: ${bus.subscriptionCount})")
-            bus.collect {
-                collectedItems.add(it)
-            }
+        log("Collecting... (sub count: ${bus.subscriptionCount})")
+        bus.collectOn(ioScope) {
+            collectedItems.add(it)
         }
         waitUntil { bus.subscriptionCount > 0 }
         runBlocking {
@@ -71,10 +72,8 @@ class FlowEventBusTest {
         val event1 = "A"
         runBlocking { bus.emit(event1) }
         val collectedItems = mutableListOf<String>()
-        ioScope.launch {
-            bus.collect {
-                collectedItems.add(it)
-            }
+        bus.collectOn(ioScope) {
+            collectedItems.add(it)
         }
         Thread.sleep(200)
         assertThat(collectedItems.size, equalTo(0))
@@ -85,11 +84,13 @@ class FlowEventBusTest {
         val bus = getInstance()
         val collectedItems1 = mutableListOf<String>()
         val collectedItems2 = mutableListOf<String>()
-        ioScope.launch { bus.collect {
+        bus.collectOn(ioScope) {
             collectedItems1.add(it)
             throw RuntimeException("Sorry!")
-        } }
-        ioScope.launch { bus.collect { collectedItems2.add(it) } }
+        }
+        bus.collectOn(ioScope) {
+            collectedItems2.add(it)
+        }
         Thread.sleep(50)
         runBlocking {
             bus.emit("A")
