@@ -21,12 +21,12 @@ class SharedFlowWithCustomReplayTest {
         val flowForTwo = mainFlow.shareIn(threadPoolScope, SharingStarted.Eagerly, 2)
 
         val collectedItems = mutableListOf<String>()
-        ioScope.launch {
+        threadPoolScope.launch {
             flowForTwo.collect {
                 collectedItems.add(it)
             }
         }
-        Thread.sleep(100)
+        Thread.sleep(50)
         assertEquals(2, collectedItems.size)
         assertEquals("D", collectedItems[0])
         assertEquals("E", collectedItems[1])

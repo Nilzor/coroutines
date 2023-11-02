@@ -7,7 +7,11 @@ fun main() {
 
     //launchManyBlockingIo()
     //Flow().emitAndCollect()
-    SharedFlowExample().emitAndCollect()
+    //SharedFlowExample().emitAndCollect()
+    GlobalScope.launch(Dispatchers.Unconfined) {
+        ListenerWrapper().listenerWrapper()
+    }
+    Thread.sleep(200)
 }
 
 fun launchMadnyBlockingIo() {
@@ -26,7 +30,6 @@ fun launchBlockingIo(i: Int) {
         }
     }
 }
-
 
 val startTime = System.currentTimeMillis()
 val time: String get() = (startTime - System.currentTimeMillis()).toString() + " ms"
